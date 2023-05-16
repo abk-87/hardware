@@ -16,9 +16,9 @@ public:
 
 class Register
 {
-public:
+private:
 	int registers[16]{};
-	
+public:	
 	int read(int address);
 	void write(int address, int data);
 };
@@ -27,12 +27,14 @@ class CPU
 {
 public:
 	void load(int inst_list[], int size);
+	void exe();
 };
 
 class RAM
 {
+private:
+	int memory[256]{};
 public:
-	int memory[128]{};
 	int inst_counter;
 	int data_counter;
 	

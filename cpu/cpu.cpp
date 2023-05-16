@@ -8,15 +8,15 @@ RAM ram;
 
 int ControlUnit::fetch()
 {
-	int instruction = ram.read(reg.registers[0]);
-	reg.registers[0]++;
+	int instruction = ram.read(reg.read(0));
+	reg.write(0, reg.read(0) + 1);
 	return instruction;
 }
 
 void ControlUnit::decode(int instruction)
 {
 	int a = 0b11111111;
-	reg.write(1, ((instruction >> 24) & a));
+	reg.write(1, (instruction >> 24));
 	reg.write(2, ((instruction >> 16) & a));
 	reg.write(3, ((instruction >> 8) & a));
 	reg.write(4, (instruction & a));
@@ -24,9 +24,20 @@ void ControlUnit::decode(int instruction)
 
 void ControlUnit::execute()
 {
-	reg.write(5, ram.read(reg.read(3)));
-	reg.write(6, ram.read(reg.read(4)));
-	ram.write(reg.read(2), alu.calculation(reg.read(5), reg.read(6), reg.read(1)));
+	switch(reg.read(1))
+	{
+		case 0:
+			ram.write(reg.read(2), reg.read(4));
+			break;
+		case 9:
+			std::cout << ram.read(reg.read(2));
+		default:
+			reg.write(5, ram.read(reg.read(3)));
+			reg.write(6, ram.read(reg.read(4)));
+			reg.write(7, alu.calculation(reg.read(5), reg.read(6), reg.read(1)));
+			ram.write(reg.read(2), reg.read(7));
+			break;
+	}
 }
 
 int ALU::calculation(int a, int b, int op)
@@ -47,6 +58,8 @@ int ALU::calculation(int a, int b, int op)
 			return a | b;
 		case 7:
 			return a ^ b;
+		case 8:
+			return ~b;
 	}
 	return 0;
 }
@@ -63,22 +76,28 @@ void Register::write(int address, int data)
 
 void CPU::load(int inst_list[], int size)
 {
-	for (int i = 0; i < size && i < 32; i++)
+	for (int i = 0; i < size && i < 253; i++)
 	{
 		ram.write(i, inst_list[i]);
 		ram.inst_counter++;
 	}
+}
+
+void CPU::exe()
+{
 	for (int i = 0; i < ram.inst_counter; i++)
 	{
 		cu.decode(cu.fetch());
 		cu.execute();
+
+		std::cout << reg.read(7) << std::endl;
 	}
 }
 
 RAM::RAM()
 {
 	inst_counter = 0;
-	data_counter = 32;
+	data_counter = 0;
 }
 
 int RAM::read(int address)

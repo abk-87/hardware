@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cassert>
 
 class ControlUnit
 {
@@ -34,11 +35,10 @@ class RAM
 {
 private:
 	int memory[256]{};
-public:
 	int inst_counter;
-	int data_counter;
-	
+public:	
 	RAM();
+	int& get_inst_counter();
 	int read(int address);
 	void write(int address, int data);
 };

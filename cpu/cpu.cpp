@@ -17,9 +17,12 @@ void ControlUnit::decode(int instruction)
 {
 	int a = 0b11111111;
 	reg.write(1, (instruction >> 24));
-	reg.write(2, ((instruction >> 16) & a));
-	reg.write(3, ((instruction >> 8) & a));
-	reg.write(4, (instruction & a));
+	if (reg.read(1) != 1)
+	{
+		reg.write(2, ((instruction >> 16) & a));
+		reg.write(3, ((instruction >> 8) & a));
+		reg.write(4, (instruction & a));
+	}
 }
 
 void ControlUnit::execute()
@@ -29,8 +32,9 @@ void ControlUnit::execute()
 		case 0:
 			ram.write(reg.read(2), reg.read(4));
 			break;
-		case 9:
-			std::cout << ram.read(reg.read(2));
+		case 1:
+			std::cout << ram.read(reg.read(2)) << std::endl;
+			break;
 		default:
 			reg.write(5, ram.read(reg.read(3)));
 			reg.write(6, ram.read(reg.read(4)));
@@ -44,21 +48,22 @@ int ALU::calculation(int a, int b, int op)
 {
 	switch(op)
 	{
-		case 1:
-			return a + b;
 		case 2:
-			return a - b;
+			return a + b;
 		case 3:
-			return a * b;
+			return a - b;
 		case 4:
-			return a / b;
+			return a * b;
 		case 5:
-			return a & b;
+			assert(b != 0 && "Division by 0");
+			return a / b;
 		case 6:
-			return a | b;
+			return a & b;
 		case 7:
-			return a ^ b;
+			return a | b;
 		case 8:
+			return a ^ b;
+		case 9:
 			return ~b;
 	}
 	return 0;
@@ -71,33 +76,35 @@ int Register::read(int address)
 
 void Register::write(int address, int data)
 {
-	registers[address] = data;
+		registers[address] = data;
 };
 
 void CPU::load(int inst_list[], int size)
 {
-	for (int i = 0; i < size && i < 253; i++)
+	for (int i = 0; i < size; i++)
 	{
 		ram.write(i, inst_list[i]);
-		ram.inst_counter++;
+		ram.get_inst_counter()++;
 	}
 }
 
 void CPU::exe()
 {
-	for (int i = 0; i < ram.inst_counter; i++)
+	for (int i = 0; i < ram.get_inst_counter(); i++)
 	{
 		cu.decode(cu.fetch());
 		cu.execute();
-
-		std::cout << reg.read(7) << std::endl;
 	}
 }
 
 RAM::RAM()
 {
 	inst_counter = 0;
-	data_counter = 0;
+}
+
+int& RAM::get_inst_counter()
+{
+	return inst_counter;
 }
 
 int RAM::read(int address)
@@ -107,5 +114,8 @@ int RAM::read(int address)
 
 void RAM::write(int address, int data)
 {
-	memory[address] = data;
+	assert(address >= ram.get_inst_counter() && address < 256);
+	{
+		memory[address] = data;
+	}
 };
